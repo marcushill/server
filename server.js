@@ -4,14 +4,27 @@ import tldjs from 'tldjs';
 import Debug from 'debug';
 import http from 'http';
 import Promise from 'bluebird';
+import Redis from 'ioredis';
 
 import ClientManager from './lib/ClientManager';
 import rand_id from './lib/rand_id';
 
 const debug = Debug('localtunnel:server');
 
-function GetClientIdFromHostname(hostname) {
-    return tldjs.getSubdomain(hostname);
+function GetClientIdFromHostname(hostname, opt) {
+    let subdomain =  tldjs.getSubdomain(hostname);
+    if (subdomain && opt.subHost) {
+        const subHosts = Array.isArray(opt.subHost)
+            ? opt.subHost : [opt.subHost]
+        const subHost = subHosts.reduce((found, sub) => {
+            return found
+                || (subdomain.slice(-sub.length) == sub ? sub : '')
+        }, '')
+        subdomain = subHost
+            ? subdomain.slice(0, -(subHost.length + 1))
+            : subdomain
+    }
+    return subdomain;
 }
 
 module.exports = function(opt) {
@@ -81,7 +94,7 @@ module.exports = function(opt) {
         const req_id = parts[1];
 
         // limit requested hostnames to 63 characters
-        if (! /^[a-z0-9]{4,63}$/.test(req_id)) {
+        if (! /^[a-z0-9-]{4,63}$/.test(req_id)) {
             const msg = 'Invalid subdomain. Subdomains must be lowercase and between 4 and 63 alphanumeric characters.';
             ctx.status = 403;
             ctx.body = {
@@ -111,7 +124,7 @@ module.exports = function(opt) {
             return;
         }
 
-        const clientId = GetClientIdFromHostname(hostname);
+        const clientId = GetClientIdFromHostname(hostname, opt);
         if (!clientId) {
             appCallback(req, res);
             return;
@@ -133,7 +146,7 @@ module.exports = function(opt) {
             return;
         }
 
-        const clientId = GetClientIdFromHostname(hostname);
+        const clientId = GetClientIdFromHostname(hostname, opt);
         if (!clientId) {
             sock.destroy();
             return;

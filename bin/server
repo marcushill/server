@@ -21,6 +21,9 @@ const argv = optimist
         default: 10,
         describe: 'maximum number of tcp sockets each client is allowed to establish at one time (the tunnels)'
     })
+    .options('sub-host', {
+        describe: 'additionally listen on this sub host for outside requests (can use this option multiple times)'
+    })
     .argv;
 
 if (argv.help) {
@@ -30,7 +33,8 @@ if (argv.help) {
 
 const server = require('../server')({
     max_tcp_sockets: argv['max-sockets'],
-    secure: argv.secure
+    secure: argv.secure,
+    subHost: argv['sub-host']
 });
 
 server.listen(argv.port, () => {
@@ -54,4 +58,3 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // vim: ft=javascript
-
