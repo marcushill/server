@@ -30,7 +30,7 @@ function GetClientIdFromHostname(hostname, opt) {
 module.exports = function(opt) {
     opt = opt || {};
 
-    const manager = new ClientManager(opt);
+    const manager = new ClientManager(opt, new Redis(process.env.REDIS_URl));
 
     const schema = opt.secure ? 'https' : 'http';
 
